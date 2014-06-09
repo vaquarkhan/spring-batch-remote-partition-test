@@ -45,9 +45,8 @@ public class ImportExchangesItemWriter<T> implements ItemWriter<T> {
 
 		for (T exchange : exchanges) {
 
-			String command = symfony.getConsolePath() + " "
-					+ "st:import exchange" + " " + exchange.toString();
-			
+			String command = symfony.getConsolePath() + "echo" + " " + exchange.toString() + " ";
+
 			symfony.run(command, this.replyTimeout);	
 		}
 
