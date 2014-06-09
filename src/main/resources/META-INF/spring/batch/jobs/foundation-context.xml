@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/batch"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:file="http://www.springframework.org/schema/integration/file"
+	xmlns:integration="http://www.springframework.org/schema/integration"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd 
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+	profile="master">
+
+
+	<beans:bean id="stLineMapper"
+		class="org.springframework.batch.item.file.mapping.PassThroughLineMapper" />
+
+	<beans:bean id="integrityCheckTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="integrityCheck"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+	<beans:bean id="batchCheckImportForComputeOkTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="batchCheckImportForComputeOk"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+	<beans:bean id="batchLockImportTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="batchLockImport"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+	<beans:bean id="batchCheckComputeOkTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="batchCheckComputeOk"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+	<beans:bean id="batchLockComputeTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="batchLockCompute"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+	<beans:bean id="batchCheckCacheOkTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="batchCheckCacheOk"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+
+	<beans:bean id="batchMarkCompleteTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="batchMarkComplete"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+	<beans:bean id="flushMemcacheTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="flushMemcache" />
+
+
+	<beans:bean id="syncDbsTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="syncDbs" />
+
+
+	<beans:bean id="fundamentalAlertsTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="fundamentalAlerts"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+
+	<beans:bean id="archiveRatiosItemWriter"
+		class="com.st.batch.foundation.AmqpAsynchRpcItemWriter"
+		p:template-ref="amqpTemplate" p:queue="${archive.ratios.queue}"
+		p:replyQueue="${archive.ratios.reply.queue}" p:exchange="${archive.ratios.exchange}"
+		p:routingKey="${archive.ratios.routing.key}" p:blockingQueue-ref="archiveRatiosLbq"
+		p:logFilePath="${spring.tmp.batch.dir}/#{jobParameters[batch_id]}/log.txt"
+		p:admin-ref="rabbitmqAdmin" scope="step" />
+
+
+	<beans:bean id="archiveMediansItemWriter"
+		class="com.st.batch.foundation.AmqpAsynchRpcItemWriter"
+		p:template-ref="amqpTemplate" p:queue="${archive.medians.queue}"
+		p:replyQueue="${archive.medians.reply.queue}" p:exchange="${archive.medians.exchange}"
+		p:routingKey="${archive.medians.routing.key}" p:blockingQueue-ref="archiveMediansLbq"
+		p:logFilePath="${spring.tmp.batch.dir}/#{jobParameters[batch_id]}/log.txt"
+		p:admin-ref="rabbitmqAdmin" scope="step" />
+
+
+	<beans:bean id="archiveAveragesItemWriter"
+		class="com.st.batch.foundation.AmqpAsynchRpcItemWriter"
+		p:template-ref="amqpTemplate" p:queue="${archive.averages.queue}"
+		p:replyQueue="${archive.averages.reply.queue}" p:exchange="${archive.averages.exchange}"
+		p:routingKey="${archive.averages.routing.key}" p:blockingQueue-ref="archiveAveragesLbq"
+		p:logFilePath="${spring.tmp.batch.dir}/#{jobParameters[batch_id]}/log.txt"
+		p:admin-ref="rabbitmqAdmin" scope="step" />
+
+
+	<beans:import
+		resource="classpath:/META-INF/spring/batch/jobs/foundation/steps/*.xml" />
+	<beans:import
+		resource="classpath:/META-INF/spring/batch/jobs/foundation/stages/*.xml" />
+	<beans:import
+		resource="classpath:/META-INF/spring/batch/jobs/foundation/batches/*.xml" />
+
+	<beans:bean id="batchCheckImportOkStepNotifier"
+		class="com.st.batch.listeners.StepNotifier"
+		p:notification-ref="symfonyNotifications" p:message="batch-check importForComputeOk" />
+
+	<flow id="batchCheckImportFlow">
+		<step id="integrityCheckStep" next="batchCheckimportForComputeOkStep">
+			<tasklet ref="integrityCheckTasklet" />
+		</step>
+		<step id="batchCheckimportForComputeOkStep" next="batchLockImportStep">
+			<tasklet ref="batchCheckImportForComputeOkTasklet" />
+		</step>
+		<step id="batchLockImportStep">
+			<tasklet ref="batchLockImportTasklet" />
+			<listeners>
+				<listener ref="batchCheckImportOkStepNotifier" />
+			</listeners>
+		</step>
+	</flow>
+
+	<beans:bean id="batchCheckComputeOkStepNotifier"
+		class="com.st.batch.listeners.StepNotifier"
+		p:notification-ref="symfonyNotifications" p:message="batch-check computeOk" />
+
+	<flow id="batchCheckComputeFlow">
+		<step id="integrityCheckAfterComputeStep" next="batchCheckComputeOkStep">
+			<tasklet ref="integrityCheckTasklet" />
+		</step>
+		<step id="batchCheckComputeOkStep" next="batchLockComputeStep">
+			<tasklet ref="batchCheckComputeOkTasklet" />
+		</step>
+		<step id="batchLockComputeStep">
+			<tasklet ref="batchLockComputeTasklet" />
+			<listeners>
+				<listener ref="batchCheckComputeOkStepNotifier" />
+			</listeners>
+		</step>
+	</flow>
+
+	<beans:bean id="batchCompleteStepNotifier"
+		class="com.st.batch.listeners.StepNotifier"
+		p:notification-ref="symfonyNotifications" p:message="batch complete" />
+
+	<step id="batchMarkCompleteStep">
+		<tasklet ref="batchMarkCompleteTasklet" />
+		<listeners>
+			<listener ref="batchCompleteStepNotifier" />
+		</listeners>
+	</step>
+
+	<beans:bean id="batchCreatedStepNotifier"
+		class="com.st.batch.listeners.StepNotifier"
+		p:notification-ref="symfonyNotifications" p:message="batch creation" />
+
+	<beans:bean id="createBatchTasklet"
+		class="org.springframework.batch.core.step.tasklet.MethodInvokingTaskletAdapter"
+		p:targetObject-ref="foundation" p:targetMethod="createBatch"
+		p:arguments="#{jobParameters[batch_id]}" scope="step" />
+
+	<job id="createBatchJob" restartable="true">
+		<step id="createBatchStep">
+			<tasklet ref="createBatchTasklet" />
+			<listeners>
+				<listener ref="batchCreatedStepNotifier" />
+			</listeners>
+		</step>
+	</job>
+
+	<beans:bean id="markStepCompleteForcefullyStepListener"
+		class="com.st.batch.foundation.MarkStepStatusForcefullyStepListener"
+		p:status="COMPLETE" />
+
+	<beans:bean id="syncDbsStepNotifier"
+		class="com.st.batch.listeners.StepNotifier"
+		p:notification-ref="symfonyNotifications" p:message="sync dbs" />
+
+	<beans:bean id="postBatchCompleteNotifier" class="com.st.batch.listeners.JobNotifier"
+		p:notification-ref="symfonyNotifications" p:message="archive complete" />
+
+	<job id="postBatchCompleteJob" restartable="true">
+		<split id="postBatchCompleteSplit" task-executor="asyncTaskExecutor">
+
+			<flow>
+				<step id="syncDbsStep">
+					<tasklet ref="syncDbsTasklet" />
+					<listeners>
+						<listener ref="syncDbsStepNotifier" />
+					</listeners>
+				</step>
+			</flow>
+			<flow>
+				<step id="archiveRatiosStep">
+					<tasklet transaction-manager="transactionManager">
+						<chunk reader="archiveRatiosFileItemReader" processor="archiveRatiosItemProcessor"
+							writer="archiveRatiosItemWriter" commit-interval="${archive.commit.interval}" />
+					</tasklet>
+				</step>
+			</flow>
+			<flow>
+				<step id="archiveMediansStep">
+					<tasklet transaction-manager="transactionManager">
+						<chunk reader="archiveMediansFileItemReader" processor="archiveMediansItemProcessor"
+							writer="archiveMediansItemWriter" commit-interval="${archive.commit.interval}" />
+					</tasklet>
+				</step>
+			</flow>
+			<flow>
+				<step id="archiveAveragesStep">
+					<tasklet transaction-manager="transactionManager">
+						<chunk reader="archiveAveragesFileItemReader" processor="archiveAveragesItemProcessor"
+							writer="archiveAveragesItemWriter" commit-interval="${archive.commit.interval}" />
+					</tasklet>
+				</step>
+			</flow>
+
+		</split>
+		<listeners>
+			<listener ref="postBatchCompleteNotifier" />
+		</listeners>
+	</job>
+
+</beans:beans>

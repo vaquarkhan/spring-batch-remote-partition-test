@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/batch"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:file="http://www.springframework.org/schema/integration/file"
+	xmlns:integration="http://www.springframework.org/schema/integration"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:amqp="http://www.springframework.org/schema/integration/amqp"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd  
+        http://www.springframework.org/schema/integration/amqp http://www.springframework.org/schema/integration/amqp/spring-integration-amqp.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd  
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd"
+	profile="master">
+
+	<task:executor id="taskExecutor" pool-size="20" />
+
+	<int:channel id="importExchangesOutboundChannel">
+		<int:dispatcher task-executor="taskExecutor" />
+	</int:channel>
+
+	<int:channel id="importExchangesInboundStagingChannel" />
+
+	<amqp:outbound-gateway request-channel="importExchangesOutboundChannel"
+		reply-channel="importExchangesInboundStagingChannel" amqp-template="importExchangesAmqpTemplate"
+		mapped-request-headers="correlationId, sequenceNumber, sequenceSize, STANDARD_REQUEST_HEADERS"
+		mapped-reply-headers="correlationId, sequenceNumber, sequenceSize, STANDARD_REQUEST_HEADERS" />
+
+
+	<beans:bean id="importExchangesMessagingTemplate"
+		class="org.springframework.integration.core.MessagingTemplate"
+		p:defaultChannel-ref="importExchangesOutboundChannel"
+		p:receiveTimeout="150000" />
+
+
+	<beans:bean id="importExchangesPartitioner"
+		class="org.springframework.batch.core.partition.support.FlatFilePartitioner"
+		p:resource="file:${spring.tmp.batch.dir}/#{jobParameters[batch_id]}/exchanges.txt"
+		scope="step" />
+
+
+	<beans:bean id="importExchangesPartitionHandler"
+		class="org.springframework.batch.integration.partition.MessageChannelPartitionHandler"
+		p:stepName="importExchangesStep" p:gridSize="6"
+		p:messagingOperations-ref="importExchangesMessagingTemplate" />
+
+	<int:aggregator ref="importExchangesPartitionHandler"
+		send-partial-result-on-expiry="true" send-timeout="300000"
+		input-channel="importExchangesInboundStagingChannel" />
+
+	<amqp:inbound-gateway concurrent-consumers="6"
+		request-channel="importExchangesInboundChannel" receive-timeout="300000"
+		reply-channel="importExchangesOutboundStagingChannel" queue-names="importExchangesQueue"
+		connection-factory="rabbitConnectionFactory"
+		mapped-request-headers="correlationId, sequenceNumber, sequenceSize, STANDARD_REQUEST_HEADERS"
+		mapped-reply-headers="correlationId, sequenceNumber, sequenceSize, STANDARD_REQUEST_HEADERS" />
+
+	<rabbit:template id="importExchangesAmqpTemplate" connection-factory="rabbitConnectionFactory"
+		routing-key="importExchangesQueue" reply-timeout="300000">
+	</rabbit:template>
+
+	<int:channel id="importExchangesInboundChannel" />
+
+	<int:service-activator ref="stepExecutionRequestHandler"
+		input-channel="importExchangesInboundChannel" output-channel="importExchangesOutboundStagingChannel" />
+
+	<int:channel id="importExchangesOutboundStagingChannel" />
+
+	<beans:bean id="stepExecutionRequestHandler"
+		class="org.springframework.batch.integration.partition.StepExecutionRequestHandler"
+		p:jobExplorer-ref="jobExplorer" p:stepLocator-ref="stepLocator" />
+
+
+	<beans:bean id="stepLocator"
+		class="org.springframework.batch.integration.partition.BeanFactoryStepLocator" />
+
+
+	<beans:bean id="importExchangesItemWriter"
+		class="com.st.batch.foundation.ImportExchangesItemWriter"
+		p:symfony-ref="symfony" p:replyTimeout="${import.exchanges.reply.timeout}"
+		p:logFilePath="${batch.log.file.path}.#{jobParameters[batch_id]}"
+		scope="step" />
+
+
+	<beans:bean id="importExchangesFileItemReader"
+		class="org.springframework.batch.item.file.MultiThreadedFlatFileItemReader"
+		p:resource="file:${spring.tmp.batch.dir}/#{jobParameters[batch_id]}/exchanges.txt"
+		p:lineMapper-ref="stLineMapper" p:startAt="#{stepExecutionContext['startAt']}"
+		p:maxItemCount="#{stepExecutionContext['itemsCount']}" scope="step" />
+
+
+	<step id="importExchangesStep">
+		<tasklet transaction-manager="transactionManager">
+			<chunk reader="importExchangesFileItemReader" writer="importExchangesItemWriter"
+				commit-interval="${import.exchanges.commit.interval}" />
+		</tasklet>
+	</step>
+
+	<job id="importExchangesJob" restartable="true">
+
+		<step id="importExchangesStep.master">
+			<partition partitioner="importExchangesPartitioner"
+				handler="importExchangesPartitionHandler" />
+		</step>
+	</job>
+
+
+
+</beans:beans>
