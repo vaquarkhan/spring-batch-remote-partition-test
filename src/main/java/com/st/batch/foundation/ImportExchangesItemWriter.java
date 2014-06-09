@@ -5,12 +5,13 @@ import java.util.List;
 import org.springframework.batch.item.ItemWriter;
 
 import com.st.symfony.Symfony;
+import com.st.symfony.SymfonyInt;
 
 public class ImportExchangesItemWriter<T> implements ItemWriter<T> {
 
 	long replyTimeout;
 
-	Symfony symfony;
+	SymfonyInt symfony;
 
 	String logFilePath;
 
@@ -22,11 +23,11 @@ public class ImportExchangesItemWriter<T> implements ItemWriter<T> {
 		this.logFilePath = logFilePath;
 	}
 	
-	public Symfony getSymfony() {
+	public SymfonyInt getSymfony() {
 		return symfony;
 	}
 
-	public void setSymfony(Symfony symfony) {
+	public void setSymfony(SymfonyInt symfony) {
 		this.symfony = symfony;
 	}
 

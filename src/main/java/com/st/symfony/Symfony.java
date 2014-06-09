@@ -28,7 +28,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class Symfony {
+public class Symfony implements SymfonyInt{
 
 	private String dir;
 	private String consolePath;

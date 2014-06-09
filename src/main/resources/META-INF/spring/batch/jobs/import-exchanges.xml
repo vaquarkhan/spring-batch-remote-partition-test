@@ -24,6 +24,10 @@
 	profile="master">
 
 
+	<beans:bean id="symfony" class="com.st.symfony.Symfony"
+		p:dir="${symfony.dir}" p:consolePath="${symfony.console.path}"
+		p:logFilePath="${batch.log.file.path}" scope="step" />
+
 	<beans:bean id="stLineMapper"
 		class="org.springframework.batch.item.file.mapping.PassThroughLineMapper" />
 
