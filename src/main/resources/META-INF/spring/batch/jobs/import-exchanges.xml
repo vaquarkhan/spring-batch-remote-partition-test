@@ -23,6 +23,10 @@
 		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd"
 	profile="master">
 
+
+	<beans:bean id="stLineMapper"
+		class="org.springframework.batch.item.file.mapping.PassThroughLineMapper" />
+
 	<task:executor id="taskExecutor" pool-size="20" />
 
 	<int:channel id="importExchangesOutboundChannel">
@@ -45,7 +49,7 @@
 
 	<beans:bean id="importExchangesPartitioner"
 		class="org.springframework.batch.core.partition.support.FlatFilePartitioner"
-		p:resource="file:${spring.tmp.batch.dir}/#{jobParameters[batch_id]}/exchanges.txt"
+		p:resource="classpath:/sample-data/#{jobParameters[batch_id]}/exchanges.txt"
 		scope="step" />
 
 

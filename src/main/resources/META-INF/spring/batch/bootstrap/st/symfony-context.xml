@@ -13,11 +13,9 @@
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
 		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
 
-	<beans:bean id="strUtil" class="org.apache.commons.lang3.StringUtils" />
-
 	<beans:bean id="symfony" class="com.st.symfony.Symfony"
 		p:dir="${symfony.dir}" p:consolePath="${symfony.console.path}"
-		p:strUtil-ref="strUtil" p:logFilePath="${batch.log.file.path}"/>
+		p:logFilePath="${batch.log.file.path}" />
 
 
 </beans:beans>
