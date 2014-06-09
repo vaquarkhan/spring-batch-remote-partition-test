@@ -207,11 +207,11 @@ But if we launch these two jobs simuleteneously, data gets mixed, this is output
 /home/[USER]/tmp/spring/batch/batch.log.2014-06-09
 
 
-18
+18 <====  This should go to 1st file
 
-13
+13 <====  This should go to 1st file
 
-5
+5  <====  This should go to 1st file
 
 57
 
@@ -219,7 +219,7 @@ But if we launch these two jobs simuleteneously, data gets mixed, this is output
 
 31
 
-6
+6  <====  This should go to 1st file
 
 58
 
@@ -231,7 +231,7 @@ But if we launch these two jobs simuleteneously, data gets mixed, this is output
 
 42
 
-7
+7   <====  This should go to 1st file
 
 59
 
@@ -243,7 +243,7 @@ But if we launch these two jobs simuleteneously, data gets mixed, this is output
 
 43
 
-8
+8   <====  This should go to 1st file
 
 60
 
@@ -279,3 +279,4 @@ But if we launch these two jobs simuleteneously, data gets mixed, this is output
 
 41
 
+Output changes with order of command which is fine, but all <=30 should go to 1st log file and >30 to 2nd
