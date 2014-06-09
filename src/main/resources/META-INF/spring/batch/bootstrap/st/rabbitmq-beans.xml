@@ -7,8 +7,6 @@
         http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.1.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-	<beans:bean id="foundation" class="com.st.symfony.Foundation"
-		p:symfony-ref="symfony" />
 
 	<rabbit:connection-factory id="rabbitConnectionFactory"
 		port="${rabbitmq.port}" host="${rabbitmq.host}" username="${rabbitmq.username}" password="${rabbitmq.password}"/>
@@ -19,8 +17,14 @@
 		connection-factory="rabbitConnectionFactory">
 	</rabbit:template>
 
-	<beans:import
-		resource="classpath:/META-INF/spring/batch/bootstrap/st/foundation/*.xml" />
+	<rabbit:queue name="${import.exchanges.queue}" />
+	<rabbit:queue name="${import.exchanges.reply.queue}" />
 
-
+	<rabbit:direct-exchange name="${import.exchanges.exchange}">
+		<rabbit:bindings>
+			<rabbit:binding queue="${import.exchanges.queue}"
+				key="${import.exchanges.routing.key}" />
+		</rabbit:bindings>
+	</rabbit:direct-exchange>
+	
 </beans:beans>

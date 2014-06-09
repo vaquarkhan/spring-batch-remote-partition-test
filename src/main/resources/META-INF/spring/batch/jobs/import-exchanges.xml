@@ -94,7 +94,7 @@
 
 	<beans:bean id="importExchangesFileItemReader"
 		class="org.springframework.batch.item.file.MultiThreadedFlatFileItemReader"
-		p:resource="file:${spring.tmp.batch.dir}/#{jobParameters[batch_id]}/exchanges.txt"
+		p:resource="classpath:/sample-data/#{jobParameters[batch_id]}/exchanges.txt"
 		p:lineMapper-ref="stLineMapper" p:startAt="#{stepExecutionContext['startAt']}"
 		p:maxItemCount="#{stepExecutionContext['itemsCount']}" scope="step" />
 

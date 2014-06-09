@@ -48,9 +48,6 @@ public class ImportExchangesItemWriter<T> implements ItemWriter<T> {
 			String command = symfony.getConsolePath() + " "
 					+ "st:import exchange" + " " + exchange.toString();
 			
-			//System.out.println("Running:" + command + " with replyTimeout="
-				//	+ this.replyTimeout);
-
 			symfony.run(command, this.replyTimeout);	
 		}
 
